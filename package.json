@@ -1,0 +1,27 @@
+{
+  "name": "siteman",
+  "module": "index.ts",
+  "type": "module",
+  "bin": {
+    "siteman": "./bin/siteman"
+  },
+  "scripts": {
+    "dev": "bun run index.ts",
+    "start": "bun run ./dist/index.js",
+    "build": "bun build index.ts --outdir ./dist --target node",
+    "link": "bun link"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/chalk": "^2.2.4",
+    "@types/commander": "^2.12.5",
+    "@types/node": "^26.1.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^15.0.0"
+  }
+}
