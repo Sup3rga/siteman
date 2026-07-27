@@ -29,10 +29,14 @@ export interface EnvConfig {
     rootPath: string;
     sitePath: string;
     nginxPath?: string;
-    repository?: string;
+    repository?: string | RepoConfig;
+    certbot_prescript?: string[];
     dockerPath?: string
 }
-
+export interface RepoConfig{
+    link: string,
+    branch: string
+}
 export interface DockerConfig {
     services: DockerServiceConfig[];
     networks?: Record<string, { external: boolean }>;
@@ -54,5 +58,5 @@ export interface DockerServiceConfig {
 export interface NginxConfig {
     root: string;
     ssl?: boolean;
-    server_script?: string
+    server_script?: string[]
 }

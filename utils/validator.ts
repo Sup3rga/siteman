@@ -49,8 +49,8 @@ function nginxConfigValidator(nginx: any): void {
   if (typeof nginx.root !== 'string') {
     throw new Error('Le champ "root" doit être une chaîne de caractères');
   }
-  if (typeof nginx.server_script !== 'string') {
-    throw new Error('Le champ "server_script" doit être une chaîne de caractères');
+  if (nginx.server_script && !Array.isArray(nginx.server_script)) {
+    throw new Error('Le champ "server_script" doit être une liste de commandes.');
   }
   if (nginx.ssl && typeof nginx.ssl !== 'boolean') {
     throw new Error('Le champ "ssl" doit être un booléen');
@@ -90,6 +90,10 @@ export function validateConfig(config: EnvConfig): void {
   // Valider le chemin de Nginx
   if (config.nginxPath && !config.nginxPath.startsWith('/')) {
     throw new Error('Le chemin de \'nginxPath\' doit être absolu (commencer par /)');
+  }
+
+  if(config.certbot_prescript && !Array.isArray(config.certbot_prescript)){
+    throw new Error('La valeur \'certbot_prescript\' doit être une liste de commandes.');
   }
 
   if(config.docker) {

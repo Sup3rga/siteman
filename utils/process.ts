@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { type EnvConfig, type CommandOptions, type DockerServiceConfig } from '../types';
 import chalk from "chalk";
 import path from "path";
+import {fileExists} from "./file.ts";
 
 export const Process = {
     config : {} as EnvConfig,
@@ -11,8 +12,9 @@ export const Process = {
         this.config = config;
         this.options = options;
         await this.services.createSiteFolder();
-        await this.services.cloneRepo();
-        await this.services.pullRepo();
+        if(!(await this.services.cloneRepo())) {
+            await this.services.pullRepo();
+        }
         await this.services.buildProject();
         await this.services.createConfigFolder();
         await this.services.createDockerComposeFile();
@@ -43,15 +45,56 @@ export const Process = {
             }
         },
         async cloneRepo(){
-            let [cwd, err] = await cli("pwd");
-            let [ops, err2] = await cli(`cd ${Process.config.sitePath} && git clone ${Process.config.repository} && git pull && bun i && bun run build`);
-            console.log("curr", cwd, ops);
+            if(await fileExists(path.join(Process.config.sitePath, ".git"))){
+                if (Process.options.verbose) {
+                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.sitePath}`));
+                }
+                return false;
+            }
+            let [cwd] = await cli.default("pwd");
+            let link = Process.config.repository;
+            let branch = "main";
+            if(typeof Process.config.repository == "object"){
+                link = Process.config.repository.link;
+                branch = Process.config.repository.branch;
+            }
+            await cli.exec(
+                `cd ${Process.config.sitePath} && git clone ${link} .`,
+                (stream)=> {
+                    if(Process.options.verbose) console.log(stream);
+                }
+            );
+            await cli.exec(
+                `cd ${Process.config.sitePath} && git checkout ${branch}`,
+                (stream)=> {
+                    if(Process.options.verbose) console.log(stream);
+                }
+            );
+            if (Process.options.verbose) {
+                console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.rootPath}`));
+            }
+            await cli.default("cd " + cwd);
+            return true;
         },
         async pullRepo(){
-
+            let [cwd] = await cli.default("pwd");
+            await cli.exec(
+                `cd ${Process.config.sitePath} &&  git pull`,
+                (stream)=> {
+                    if(Process.options.verbose) console.log(stream);
+                }
+            );
+            await cli.default("cd " + cwd);
         },
         async buildProject(){
-
+            let [cwd] = await cli.default("pwd");
+            await cli.exec(
+                `cd ${Process.config.sitePath} && bun i && bun run build`,
+                (stream)=> {
+                    if(Process.options.verbose) console.log(stream);
+                }
+            );
+            await cli.default("cd " + cwd);
         },
         async createConfigFolder(): Promise<void> {
             try{
@@ -75,7 +118,14 @@ export const Process = {
             }
         },
         async runDockerCompose(){
-
+            let [cwd] = await cli.default("pwd");
+            await cli.exec(
+                `cd ${Process.config.sitePath} && bun i && bun run build`,
+                (stream)=> {
+                    if(Process.options.verbose) console.log(stream);
+                }
+            );
+            await cli.default("cd " + cwd);
         },
         async generateNginxFile(withSsl: boolean){
             if(Process.config.nginx) {
@@ -87,9 +137,23 @@ export const Process = {
             }
         },
         async runServerScript(){
-
+            const cwd = process.cwd();
+            if(Process.config.nginx?.server_script){
+                for(let script of Process.config.nginx.server_script){
+                    await cli.exec(script);
+                }
+            }
+            process.chdir(cwd);
         },
         async runCertbot(){
+            const cwd = process.cwd();
+            if(Process.config.certbot_prescript){
+                for(let script of Process.config.certbot_prescript){
+                    await cli.exec(script);
+                }
+            }
+            await cli.exec("docker-compose run certbot certonly --webroot -w /var/www/certbot -d "+Process.config.domain);
+            process.chdir(cwd);
             if (Process.options.verbose) {
                 console.log(chalk.dim(`  ✅ Certbot executé avec succès !`));
             }
