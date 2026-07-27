@@ -22,7 +22,6 @@ export async function createCommand(
     console.log(chalk.dim(`🌍 Environnement: ${options.env}`));
     console.log(chalk.dim(`🔄 Force: ${options.force ? '✅ Oui' : '❌ Non'}`));
     console.log(chalk.dim(`🔊 Mode verbose: ${options.verbose ? '✅ Activé' : '❌ Désactivé'}`));
-    console.log(chalk.dim(`🔧 Bun version: ${Bun.version}`));
   }
   
   // Vérifier si le fichier existe
