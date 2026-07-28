@@ -120,7 +120,7 @@ export const Process = {
         async runDockerCompose(){
             const cwd = process.cwd();
             await cli.exec(`cd ${Process.config.sitePath}`);
-            await cli.exec(`docker-compose up -d`);
+            await cli.exec(`sudo docker compose up -d`);
             if (Process.options.verbose) {
                 console.log(chalk.dim(`  ✅ docker compose exécuté !`));
             }
