@@ -21,8 +21,8 @@ export const Process = {
         if(await this.services.cloneRepo()) {
             await this.services.execScript(Process.config.site, "install_script");
         }
-        await this.services.execScript(Process.config.site, "postinstall_script");
         await this.services.createEnvFile(Process.config.site.path);
+        await this.services.execScript(Process.config.site, "postinstall_script");
         await this.services.createConfigFolder();
         await this.services.createDockerComposeFile();
         await this.services.runDockerCompose();
@@ -39,6 +39,7 @@ export const Process = {
     async update(config: EnvConfig, options: CommandOptions){
         this.config = config;
         this.options = options;
+        await this.services.createEnvFile(Process.config.site.path);
         await this.services.execScript(Process.config.site, "postinstall_script");
         await this.services.createDockerComposeFile();
         await this.services.runDockerCompose();
