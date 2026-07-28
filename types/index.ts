@@ -63,4 +63,5 @@ export interface NginxConfig {
     root: string;
     ssl?: boolean;
     server_script?: string[]
+    proxy: string
 }

@@ -271,7 +271,7 @@ export const Process = {
                 content += this.addLine(`return 302 https://${Process.config.domain}$request_uri;`,1,2);
             }
             else{
-                content += this.addLine(`proxy_pass ${Process.config.nginx?.root}$request_uri;`,1,2);
+                content += this.addLine(`proxy_pass ${Process.config.nginx?.proxy};`,1,2);
                 content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
             }
             content += this.addLine("}", 1);
@@ -289,7 +289,7 @@ export const Process = {
             content += this.addLine("include /etc/nginx/conf.d/ssl.conf;", 1);
             content += this.nextLine(1);
             content += this.addLine("location / {", 1);
-            content += this.addLine(`proxy_pass ${Process.config.nginx?.root}$request_uri;`,1,2);
+            content += this.addLine(`proxy_pass ${Process.config.nginx?.proxy};`,1,2);
             content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
             content += this.addLine("}", 1);
             content += this.addLine("}");

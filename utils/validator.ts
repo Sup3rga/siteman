@@ -58,6 +58,9 @@ function nginxConfigValidator(nginx: any): void {
   if (typeof nginx.root !== 'string') {
     throw new Error('Le champ "root" doit être une chaîne de caractères');
   }
+  if (typeof nginx.proxy !== 'string') {
+    throw new Error('Le champ "proxy" doit être une chaîne de caractères');
+  }
   if (nginx.server_script && !Array.isArray(nginx.server_script)) {
     throw new Error('Le champ "server_script" doit être une liste de commandes.');
   }
