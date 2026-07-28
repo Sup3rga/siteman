@@ -40,6 +40,7 @@ export const Process = {
         this.config = config;
         this.options = options;
         await this.services.execScript(Process.config.site, "postinstall_script");
+        await this.services.createDockerComposeFile();
         await this.services.runDockerCompose();
         if(config.nginx){
             await this.services.execScript(Process.config.nginx as ScriptConfig, "post_script");
