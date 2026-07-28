@@ -87,14 +87,14 @@ export const Process = {
             await cli.default("cd " + cwd);
         },
         async buildProject(){
-            let [cwd] = await cli.default("pwd");
+            const cwd = process.cwd();
             await cli.exec(
                 `cd ${Process.config.sitePath} && bun i && bun run build`,
                 (stream)=> {
                     if(Process.options.verbose) console.log(stream);
                 }
             );
-            await cli.default("cd " + cwd);
+            process.chdir(cwd);
         },
         async createConfigFolder(): Promise<void> {
             try{
@@ -118,14 +118,13 @@ export const Process = {
             }
         },
         async runDockerCompose(){
-            let [cwd] = await cli.default("pwd");
-            await cli.exec(
-                `cd ${Process.config.sitePath} && bun i && bun run build`,
-                (stream)=> {
-                    if(Process.options.verbose) console.log(stream);
-                }
-            );
-            await cli.default("cd " + cwd);
+            const cwd = process.cwd();
+            await cli.exec(`cd ${Process.config.sitePath}`);
+            await cli.exec(`docker-compose up -d`);
+            if (Process.options.verbose) {
+                console.log(chalk.dim(`  ✅ docker compose exécuté !`));
+            }
+            process.chdir(cwd);
         },
         async generateNginxFile(withSsl: boolean){
             if(Process.config.nginx) {
@@ -218,6 +217,8 @@ export const Process = {
                     case "networks":
                     case "volumes":
                     case "command":
+                    case "depends_on":
+                    case "env_file":
                         content += this.addLine(data+": ", start + 1);
                         for(let item of service[data]){
                             content += this.addLine("-"+item, start+1, 2);

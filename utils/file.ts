@@ -25,22 +25,6 @@ export async function readJsonFile<T>(chemin: string): Promise<T> {
   }
 }
 
-export async function writeJsonFile<T>(
-  chemin: string,
-  data: T,
-  spaces: number = 2
-): Promise<void> {
-  const content = JSON.stringify(data, null, spaces);
-
-  if (isBun) {
-    // Utiliser Bun
-    await Bun.write(chemin, content);
-  } else {
-    // Utiliser Node.js
-    await fs.writeFile(chemin, content, 'utf-8');
-  }
-}
-
 export async function ensureDirectoryExists(chemin: string): Promise<void> {
   await fs.mkdir(chemin, { recursive: true });
 }

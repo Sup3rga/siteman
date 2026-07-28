@@ -53,6 +53,8 @@ export interface DockerServiceConfig {
     restart?: 'no' | 'always' | 'unless-stopped' | 'on-failure';
     environment?: Record<string, string>;
     command?: string;
+    depends_on?: string[];
+    env_file?: string[]
 }
 
 export interface NginxConfig {

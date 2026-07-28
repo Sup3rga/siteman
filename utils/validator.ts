@@ -28,6 +28,12 @@ function dockerServiceConfigValidator(service: any): void {
   if (service.command && typeof service.command !== 'string') {
     throw new Error('Le champ "command" doit être une chaîne de caractères');
   }
+  if(service.depends_on && !Array.isArray(service.depends_on)){
+    throw new Error('Le champ "depends_on" doit être un tableau de chaînes de caractères');
+  }
+  if(service.env_file && !Array.isArray(service.env_file)){
+    throw new Error('Le champ "env_file" doit être un tableau de chaînes de caractères');
+  }
 }
 
 function dockerConfigValidator(docker: any): void {
