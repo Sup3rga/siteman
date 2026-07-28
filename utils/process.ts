@@ -1,6 +1,12 @@
 import { cli } from '../utils/misc';
 import fs from 'fs/promises';
-import { type EnvConfig, type CommandOptions, type DockerServiceConfig } from '../types';
+import {
+    type EnvConfig,
+    type CommandOptions,
+    type DockerServiceConfig,
+    type ScriptConfig,
+    type ScriptIndex
+} from '../types';
 import chalk from "chalk";
 import path from "path";
 import {fileExists} from "./file.ts";
@@ -8,152 +14,141 @@ import {fileExists} from "./file.ts";
 export const Process = {
     config : {} as EnvConfig,
     options: {} as CommandOptions,
-    async start(config: EnvConfig, options: CommandOptions){
+    async create(config: EnvConfig, options: CommandOptions){
         this.config = config;
         this.options = options;
         await this.services.createSiteFolder();
-        if(!(await this.services.cloneRepo())) {
-            await this.services.pullRepo();
+        if(await this.services.cloneRepo()) {
+            await this.services.execScript(Process.config.site, "install_script");
         }
-        await this.services.createEnvFile(Process.config.sitePath);
-        await this.services.buildProject();
+        await this.services.execScript(Process.config.site, "postinstall_script");
+        await this.services.createEnvFile(Process.config.site.path);
         await this.services.createConfigFolder();
         await this.services.createDockerComposeFile();
         await this.services.runDockerCompose();
         await this.services.generateNginxFile(false);
-        if(config.nginx?.server_script){
-            await this.services.runServerScript();
+        if(config.nginx){
+            await this.services.execScript(Process.config.nginx as ScriptConfig, "post_script");
         }
-        if(config.nginx?.ssl){
+        if(config.nginx?.ssl && config.certbot){
             await this.services.runCertbot();
             await this.services.generateNginxFile(true);
-            if(config.nginx?.server_script){
-                await this.services.runServerScript();
-            }
+            await this.services.execScript(Process.config.nginx as ScriptConfig, "post_script");
+        }
+    },
+    async update(config: EnvConfig, options: CommandOptions){
+        this.config = config;
+        this.options = options;
+        await this.services.execScript(Process.config.site, "postinstall_script");
+        await this.services.runDockerCompose();
+        if(config.nginx){
+            await this.services.execScript(Process.config.nginx as ScriptConfig, "post_script");
         }
     },
     services: {
         async createSiteFolder(): Promise<void> {
             try{
-                await fs.mkdir(Process.config.sitePath, { recursive: true });
+                await fs.mkdir(Process.config.site.path, { recursive: true });
                 if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.sitePath}`));
+                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.site.path}`));
                 }
             } catch {
                 if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ⚠️  Dossier déjà existant: ${Process.config.sitePath}`));
+                    console.log(chalk.dim(`  ⚠️  Dossier déjà existant: ${Process.config.site.path}`));
                 }
             }
         },
         async cloneRepo(){
-            if(await fileExists(path.join(Process.config.sitePath, ".git"))){
+            if(await fileExists(path.join(Process.config.site.path, ".git"))){
                 if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.sitePath}`));
+                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.site.path}`));
                 }
                 return false;
             }
-            let [cwd] = await cli.default("pwd");
-            let link = Process.config.repository;
-            let branch = "main";
-            if(typeof Process.config.repository == "object"){
-                link = Process.config.repository.link;
-                branch = Process.config.repository.branch;
-            }
-            await cli.exec(
-                `cd ${Process.config.sitePath} && git clone ${link} .`,
-                (stream)=> {
-                    if(Process.options.verbose) console.log(stream);
+            if(Process.config.site.repository) {
+                let [cwd] = await cli.default("pwd");
+                let link = Process.config.site.repository;
+                let branch = "main";
+                if (typeof Process.config.site.repository == "object") {
+                    link = Process.config.site.repository.link;
+                    branch = Process.config.site.repository.branch;
                 }
-            );
-            await cli.exec(
-                `cd ${Process.config.sitePath} && git checkout ${branch}`,
-                (stream)=> {
-                    if(Process.options.verbose) console.log(stream);
+                await cli.exec(
+                    `cd ${Process.config.site.path} && git clone ${link} .`,
+                    (stream) => {
+                        if (Process.options.verbose) console.log(stream);
+                    }
+                );
+                await cli.exec(
+                    `cd ${Process.config.site.path} && git checkout ${branch}`,
+                    (stream) => {
+                        if (Process.options.verbose) console.log(stream);
+                    }
+                );
+                if (Process.options.verbose) {
+                    console.log(chalk.dim(`  ✅ Dépot git cloné !`));
                 }
-            );
-            if (Process.options.verbose) {
-                console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.rootPath}`));
+                await cli.default("cd " + cwd);
             }
-            await cli.default("cd " + cwd);
             return true;
         },
-        async pullRepo(){
-            let [cwd] = await cli.default("pwd");
-            await cli.exec(
-                `cd ${Process.config.sitePath} &&  git pull`,
-                (stream)=> {
-                    if(Process.options.verbose) console.log(stream);
+        async execScript(config: ScriptConfig, index: ScriptIndex){
+            if(config[index]){
+                for(let script of config[index]){
+                    if (Process.options.verbose) {
+                        console.log(chalk.dim(`  ✅ [${index}] Exécute : ${script}`));
+                    }
+                    await cli.exec(script);
                 }
-            );
-            await cli.default("cd " + cwd);
-        },
-        async buildProject(){
-            const cwd = process.cwd();
-            await cli.exec(
-                `cd ${Process.config.sitePath} && bun i && bun run build`,
-                (stream)=> {
-                    if(Process.options.verbose) console.log(stream);
-                }
-            );
-            process.chdir(cwd);
+            }
         },
         async createConfigFolder(): Promise<void> {
+            if(!Process.config.docker) return ;
             try{
-                await fs.mkdir(Process.config.rootPath, { recursive: true });
+                await fs.mkdir(Process.config.docker.path, { recursive: true });
                 if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.rootPath}`));
+                    console.log(chalk.dim(`  ✅ Dossier créé: ${Process.config.docker.path}`));
                 }
             } catch {
                 if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ⚠️  Dossier déjà existant: ${Process.config.rootPath}`));
+                    console.log(chalk.dim(`  ⚠️  Dossier déjà existant: ${Process.config.docker.path}`));
                 }
             }
         },
         async createDockerComposeFile(){
-            if(Process.config.docker) {
-                const filename = path.join(Process.config.rootPath, "docker-compose.yml");
-                fs.writeFile(filename, Process.generate.dockerComposeFile());
-                if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ✅ Fichier docker compose créé: ${filename}`));
-                }
-                if(Process.config.docker.add_env){
-                    await this.createEnvFile(Process.config.rootPath);
-                }
+            if(!Process.config.docker) return ;
+
+            const filename = path.join(Process.config.docker.path, "docker-compose.yml");
+            fs.writeFile(filename, Process.generate.dockerComposeFile());
+            if (Process.options.verbose) {
+                console.log(chalk.dim(`  ✅ Fichier docker compose créé: ${filename}`));
+            }
+            if(Process.config.docker.add_env){
+                await this.createEnvFile(Process.config.docker.path);
             }
         },
         async runDockerCompose(){
+            if(!Process.config.docker) return;
             const cwd = process.cwd();
-            await cli.exec(`cd ${Process.config.rootPath} && sudo docker compose down && sudo docker compose up -d`);
+            await cli.exec(`cd ${Process.config.docker?.path} && sudo docker compose down && sudo docker compose up -d`);
             if (Process.options.verbose) {
                 console.log(chalk.dim(`  ✅ docker compose exécuté !`));
             }
             process.chdir(cwd);
         },
         async generateNginxFile(withSsl: boolean){
-            if(Process.config.nginx) {
-                const filename = path.join(Process.config.nginxPath, Process.config.name+".default.conf");
-                fs.writeFile(filename, Process.generate.nginxConfFile(withSsl));
-                if (Process.options.verbose) {
-                    console.log(chalk.dim(`  ✅ Fichier de configuration nginx créé: ${filename}`));
-                }
+            if(!Process.config.nginx) return ;
+
+            const filename = path.join(Process.config.nginx.path, Process.config.name+".default.conf");
+            fs.writeFile(filename, Process.generate.nginxConfFile(withSsl));
+            if (Process.options.verbose) {
+                console.log(chalk.dim(`  ✅ Fichier de configuration nginx créé: ${filename}`));
             }
-        },
-        async runServerScript(){
-            const cwd = process.cwd();
-            if(Process.config.nginx?.server_script){
-                for(let script of Process.config.nginx.server_script){
-                    await cli.exec(script);
-                }
-            }
-            process.chdir(cwd);
         },
         async runCertbot(){
+            if(!Process.config.certbot) return;
             const cwd = process.cwd();
-            if(Process.config.certbot_prescript){
-                for(let script of Process.config.certbot_prescript){
-                    await cli.exec(script);
-                }
-            }
+            await this.execScript(Process.config.certbot, "pre_script");
             await cli.exec("docker-compose run certbot certonly --webroot -w /var/www/certbot -d "+Process.config.domain);
             process.chdir(cwd);
             if (Process.options.verbose) {
@@ -226,6 +221,7 @@ export const Process = {
                     break;
                     case "env_file":
                         content += this.addLine(data+": ", start + 1);
+                        // @ts-ignore
                         for(let item of service[data]){
                             content += this.addLine("- "+item, start+1, 2);
                         }
@@ -237,6 +233,7 @@ export const Process = {
                     case "command":
                     case "depends_on":
                         content += this.addLine(data+": ", start + 1);
+                        // @ts-ignore
                         for(let item of service[data]){
                             content += this.addLine("- "+item, start+1, 2);
                         }

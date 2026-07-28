@@ -1,4 +1,4 @@
-import { EnvConfig } from '../types';
+import {type CertbotConfig, type DockerConfig, type EnvConfig, type SiteConfig} from '../types';
 
 function dockerServiceConfigValidator(service: any): void {
   if (typeof service.image !== 'string') {
@@ -36,16 +36,18 @@ function dockerServiceConfigValidator(service: any): void {
   }
 }
 
-function dockerConfigValidator(docker: any): void {
+function dockerConfigValidator(docker: DockerConfig): void {
   if (!Array.isArray(docker.services)) {
     throw new Error('Le champ "services" doit être un tableau');
   }
   docker.services.forEach(dockerServiceConfigValidator);
-  
   if (docker.networks && (typeof docker.networks !== 'object' || Array.isArray(docker.networks))) {
     throw new Error('Le champ "networks" doit être un objet');
   }
-  
+  // Valider le chemin
+  if (!docker.path.startsWith('/')) {
+    throw new Error('Le chemin de \'docker.path\' doit être absolu (commencer par /)');
+  }
   if (docker.version && typeof docker.version !== 'string') {
     throw new Error('Le champ "version" doit être une chaîne de caractères');
   }
@@ -67,11 +69,37 @@ function nginxConfigValidator(nginx: any): void {
   if (nginx.ssl && typeof nginx.ssl !== 'boolean') {
     throw new Error('Le champ "ssl" doit être un booléen');
   }
-} 
+  // Valider le chemin de Nginx
+  if (!nginx.path.startsWith('/')) {
+    throw new Error('Le chemin de \'nginx.path\' doit être absolu (commencer par /)');
+  }
+  scriptConfig(nginx, 'nginx');
+}
+
+function scriptConfig(config : any, source : string) : void{
+  const keys =  ["install_script", "postinstall_script", "pre_script", "post_script"];
+  for(let key of keys){
+    if(config[key] && !Array.isArray(config[key])){
+      throw new Error(`Le champ "${source}.${key}" doit être un tableau`);
+    }
+  }
+}
+
+function certbotConfig(certbot: CertbotConfig): void{
+  scriptConfig(certbot, 'certbot');
+}
+
+function siteConfig(site: SiteConfig) : void{
+  // Valider le chemin
+  if (!site.path.startsWith('/')) {
+    throw new Error('Le chemin de \'site.path\' doit être absolu (commencer par /)');
+  }
+  scriptConfig(site, 'site');
+}
 
 export function validateConfig(config: EnvConfig): void {
   const required: (keyof EnvConfig)[] = [
-    'name', 'domain', 'docker', 'nginx', 'rootPath', 'sitePath', 'repository'
+    'name', 'domain', 'site'
   ];
   const missing = required.filter(field => !config[field]);
   
@@ -85,27 +113,9 @@ export function validateConfig(config: EnvConfig): void {
       'Le nom ne doit contenir que des lettres minuscules, des chiffres et des tirets'
     );
   }
-  
   // Valider le domaine
   if (!config.domain.includes('.')) {
     throw new Error('Le domaine doit être valide (ex: example.com)');
-  }
-  
-  // Valider le chemin
-  if (!config.rootPath.startsWith('/')) {
-    throw new Error('Le chemin de \'rootPath\' doit être absolu (commencer par /)');
-  }
-  // Valider le chemin
-  if (!config.sitePath.startsWith('/')) {
-    throw new Error('Le chemin de \'sitePath\' doit être absolu (commencer par /)');
-  }
-  // Valider le chemin de Nginx
-  if (config.nginxPath && !config.nginxPath.startsWith('/')) {
-    throw new Error('Le chemin de \'nginxPath\' doit être absolu (commencer par /)');
-  }
-
-  if(config.certbot_prescript && !Array.isArray(config.certbot_prescript)){
-    throw new Error('La valeur \'certbot_prescript\' doit être une liste de commandes.');
   }
 
   if(config.env && !Array.isArray(config.env)){
@@ -119,5 +129,10 @@ export function validateConfig(config: EnvConfig): void {
   if(config.nginx) {
     nginxConfigValidator(config.nginx);
   }
+
+  if(config.certbot){
+    certbotConfig(config.certbot);
+  }
+  siteConfig(config.site);
 }
 

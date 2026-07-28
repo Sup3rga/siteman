@@ -3,35 +3,25 @@ export interface CreateOptions {
   verbose: boolean;
   env: 'dev' | 'prod' | 'staging';
 }
-
-export interface ListOptions {
-  all: boolean;
-  format: 'table' | 'json';
+export type ScriptIndex = "install_script" | "postinstall_script" | "pre_script" | "post_script";
+export interface ScriptConfig{
+    install_script?: string[];
+    postinstall_script?: string[];
+    pre_script?: string[];
+    post_script?: string[]
 }
-
-
 export interface CommandOptions {
   force: boolean;
   verbose: boolean;
   env: string;
 };
-
-export interface DeleteOptions {
-  yes: boolean;
-  recursive: boolean;
-}
-
 export interface EnvConfig {
     domain: string;
     name: string;
     docker?: DockerConfig;
     nginx?: NginxConfig;
-    rootPath: string;
-    sitePath: string;
-    nginxPath?: string;
-    repository?: string | RepoConfig;
-    certbot_prescript?: string[];
-    dockerPath?: string
+    site: SiteConfig;
+    certbot?: CertbotConfig;
     env?: string[]
 }
 export interface RepoConfig{
@@ -39,12 +29,12 @@ export interface RepoConfig{
     branch: string
 }
 export interface DockerConfig {
+    path: string;
     services: DockerServiceConfig[];
     networks?: Record<string, { external: boolean }>;
     version?: string;
     add_env?: boolean
 }
-
 export interface DockerServiceConfig {
     image: string;
     tag: string;
@@ -58,10 +48,14 @@ export interface DockerServiceConfig {
     depends_on?: string[];
     env_file?: string[]
 }
-
-export interface NginxConfig {
+export interface NginxConfig extends ScriptConfig{
+    path: string;
     root: string;
     ssl?: boolean;
-    server_script?: string[]
     proxy: string
 }
+export interface SiteConfig extends ScriptConfig{
+    path: string;
+    repository?: string | RepoConfig;
+}
+export interface CertbotConfig extends ScriptConfig{}
