@@ -11,8 +11,7 @@ export const cli = {
     async exec(command: string, callback? : (e:string)=>void){
         return new Promise((res)=>{
             if(/^cd\s+((?:\/|~\/|[a-zA-Z]:\\)?(?:[\w\s\-_.]+(\/[\w\s\-_.]+)*\/?))$/.test(command)){
-                process.chdir(RegExp.$1);
-                return;
+                return res(process.chdir(RegExp.$1));
             }
             const child = spawn(command, [], {
                 shell: true,
