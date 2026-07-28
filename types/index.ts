@@ -32,6 +32,7 @@ export interface EnvConfig {
     repository?: string | RepoConfig;
     certbot_prescript?: string[];
     dockerPath?: string
+    env?: string[]
 }
 export interface RepoConfig{
     link: string,
@@ -41,6 +42,7 @@ export interface DockerConfig {
     services: DockerServiceConfig[];
     networks?: Record<string, { external: boolean }>;
     version?: string;
+    add_env?: boolean
 }
 
 export interface DockerServiceConfig {

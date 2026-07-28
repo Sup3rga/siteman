@@ -49,6 +49,9 @@ function dockerConfigValidator(docker: any): void {
   if (docker.version && typeof docker.version !== 'string') {
     throw new Error('Le champ "version" doit être une chaîne de caractères');
   }
+  if (docker.add_env && typeof docker.add_env !== 'boolean') {
+    throw new Error('Le champ "add_env" doit être un booléen');
+  }
 }
 
 function nginxConfigValidator(nginx: any): void {
@@ -100,6 +103,10 @@ export function validateConfig(config: EnvConfig): void {
 
   if(config.certbot_prescript && !Array.isArray(config.certbot_prescript)){
     throw new Error('La valeur \'certbot_prescript\' doit être une liste de commandes.');
+  }
+
+  if(config.env && !Array.isArray(config.env)){
+    throw new Error('La valeur \'env\' doit être une liste.');
   }
 
   if(config.docker) {

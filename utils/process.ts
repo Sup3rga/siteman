@@ -15,6 +15,7 @@ export const Process = {
         if(!(await this.services.cloneRepo())) {
             await this.services.pullRepo();
         }
+        await this.services.createEnvFile(Process.config.sitePath);
         await this.services.buildProject();
         await this.services.createConfigFolder();
         await this.services.createDockerComposeFile();
@@ -115,6 +116,9 @@ export const Process = {
                 if (Process.options.verbose) {
                     console.log(chalk.dim(`  ✅ Fichier docker compose créé: ${filename}`));
                 }
+                if(Process.config.docker.add_env){
+                    await this.createEnvFile(Process.config.rootPath);
+                }
             }
         },
         async runDockerCompose(){
@@ -154,6 +158,15 @@ export const Process = {
             process.chdir(cwd);
             if (Process.options.verbose) {
                 console.log(chalk.dim(`  ✅ Certbot executé avec succès !`));
+            }
+        },
+        async createEnvFile(_path: string){
+            if(Process.config.env) {
+                const filename = path.join(_path, ".env");
+                fs.writeFile(filename, Process.generate.envFile());
+                if (Process.options.verbose) {
+                    console.log(chalk.dim(`  ✅ Fichier .env créé: ${filename}`));
+                }
             }
         }
     },
@@ -211,16 +224,21 @@ export const Process = {
                     case "working_dir":
                         content += this.addLine("working_dir: "+service.working_dir, start + 1);
                     break;
+                    case "env_file":
+                        content += this.addLine(data+": ", start + 1);
+                        for(let item of service[data]){
+                            content += this.addLine("- "+item, start+1, 2);
+                        }
+                    break;
                     case "ports":
                     case "environment":
                     case "networks":
                     case "volumes":
                     case "command":
                     case "depends_on":
-                    case "env_file":
                         content += this.addLine(data+": ", start + 1);
                         for(let item of service[data]){
-                            content += this.addLine("-"+item, start+1, 2);
+                            content += this.addLine("- "+item, start+1, 2);
                         }
                     break;
                 }
@@ -275,6 +293,13 @@ export const Process = {
             content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
             content += this.addLine("}", 1);
             content += this.addLine("}");
+            return content;
+        },
+        envFile(){
+            let content = "";
+            for(let data of Process.config.env!){
+                content += this.addLine(data);
+            }
             return content;
         }
     }
