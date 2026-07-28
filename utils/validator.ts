@@ -7,7 +7,7 @@ function dockerServiceConfigValidator(service: any): void {
   if (typeof service.tag !== 'string') {
     throw new Error('Le champ "tag" doit être une chaîne de caractères');
   }
-  if (!Array.isArray(service.ports)) {
+  if (service.ports && !Array.isArray(service.ports)) {
     throw new Error('Le champ "ports" doit être un tableau.');
   }
   if (service.volumes && (!Array.isArray(service.volumes) || !service.volumes.every((volume: any) => typeof volume === 'string'))) {

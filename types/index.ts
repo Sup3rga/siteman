@@ -48,7 +48,7 @@ export interface DockerConfig {
 export interface DockerServiceConfig {
     image: string;
     tag: string;
-    ports: number[];
+    ports?: number[];
     volumes?: string[];
     networks?: string[];
     working_dir?: string;
