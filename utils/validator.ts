@@ -25,8 +25,8 @@ function dockerServiceConfigValidator(service: any): void {
   if (service.environment && !Array.isArray(service.environment)) {
     throw new Error('Le champ "environment" doit être un tableau.');
   }
-  if (service.command && typeof service.command !== 'string') {
-    throw new Error('Le champ "command" doit être une chaîne de caractères');
+  if (service.command && !Array.isArray(service.command)) {
+    throw new Error('Le champ "command" doit être un tableau.');
   }
   if(service.depends_on && !Array.isArray(service.depends_on)){
     throw new Error('Le champ "depends_on" doit être un tableau de chaînes de caractères');
