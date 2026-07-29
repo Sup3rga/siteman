@@ -265,6 +265,11 @@ export const Process = {
             content += this.addLine("root /var/www/certbot;", 1, 2);
             content += this.addLine("}", 1);
             content += this.nextLine(1);
+            if(Process.config.nginx?.socket && !Process.config.nginx?.ssl){
+                content += this.nextLine();
+                content += this.nginxConfigSocket();
+                content += this.nextLine();
+            }
             content += this.addLine("location / {", 1);
             if(secure){
                 content += this.addLine(`return 302 https://${Process.config.domain}$request_uri;`,1,2);
@@ -274,11 +279,6 @@ export const Process = {
                 content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
             }
             content += this.addLine("}", 1);
-            if(Process.config.nginx?.socket && !Process.config.nginx?.ssl){
-                content += this.nextLine();
-                content += this.nginxConfigSocket();
-                content += this.nextLine();
-            }
             content += this.addLine("}");
             return content;
         },
@@ -305,15 +305,15 @@ export const Process = {
             content += this.addLine(`ssl_certificate_key /etc/letsencrypt/live/${Process.config.domain}/privkey.pem;`, 1);
             content += this.addLine("include /etc/nginx/conf.d/ssl.conf;", 1);
             content += this.nextLine(1);
-            content += this.addLine("location / {", 1);
-            content += this.addLine(`proxy_pass ${Process.config.nginx?.proxy};`,1,2);
-            content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
-            content += this.addLine("}", 1);
             if(Process.config.nginx?.socket && Process.config.nginx?.ssl){
                 content += this.nextLine();
                 content += this.nginxConfigSocket();
                 content += this.nextLine();
             }
+            content += this.addLine("location / {", 1);
+            content += this.addLine(`proxy_pass ${Process.config.nginx?.proxy};`,1,2);
+            content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
+            content += this.addLine("}", 1);
             content += this.addLine("}");
             return content;
         },
