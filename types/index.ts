@@ -1,8 +1,3 @@
-export interface CreateOptions {
-  force: boolean;
-  verbose: boolean;
-  env: 'dev' | 'prod' | 'staging';
-}
 export type ScriptIndex = "install_script" | "postinstall_script" | "pre_script" | "post_script";
 export interface ScriptConfig{
     install_script?: string[];
@@ -52,7 +47,8 @@ export interface NginxConfig extends ScriptConfig{
     path: string;
     root: string;
     ssl?: boolean;
-    proxy: string
+    proxy: string;
+    socket?: string[];
 }
 export interface SiteConfig extends ScriptConfig{
     path: string;

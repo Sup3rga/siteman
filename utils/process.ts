@@ -168,10 +168,10 @@ export const Process = {
         }
     },
     generate: {
-        space(qty: number){
+        space(qty: number = 0){
             return " ".repeat(qty);
         },
-        nextLine(qty: number){
+        nextLine(qty: number = 1){
             return "\n".repeat(qty);
         },
         addLine(text: string, startAt: number = 0, space = 0){
@@ -274,7 +274,25 @@ export const Process = {
                 content += this.addLine("include /etc/nginx/conf.d/proxy.conf;", 1,2);
             }
             content += this.addLine("}", 1);
+            if(Process.config.nginx?.socket && secure == Process.config.nginx?.ssl){
+                content += this.nextLine();
+                content += this.nginxConfigSocket();
+                content += this.nextLine();
+            }
             content += this.addLine("}");
+            return content;
+        },
+        nginxConfigSocket(){
+            let content = "";
+            if(Process.config.nginx?.socket) return content;
+            content += this.addLine(`location ${Process.config.nginx?.socket} {`, 1);
+            content += this.addLine(`proxy_pass ${Process.config.nginx?.proxy};`,1,2);
+            content += this.addLine("proxy_http_version 1.1;", 1,2);
+            content += this.addLine("proxy_set_header Host $host;", 1,2);
+            content += this.addLine("proxy_set_header X-Real-IP $remote_addr;", 1,2);
+            content += this.addLine("proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;", 1,2);
+            content += this.addLine("proxy_set_header X-Forwarded-Proto $scheme;", 1,2);
+            content += this.addLine("}", 1);
             return content;
         },
         nginxConfFileSecure(){

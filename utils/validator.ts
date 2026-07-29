@@ -63,11 +63,11 @@ function nginxConfigValidator(nginx: any): void {
   if (typeof nginx.proxy !== 'string') {
     throw new Error('Le champ "proxy" doit être une chaîne de caractères');
   }
-  if (nginx.server_script && !Array.isArray(nginx.server_script)) {
-    throw new Error('Le champ "server_script" doit être une liste de commandes.');
-  }
   if (nginx.ssl && typeof nginx.ssl !== 'boolean') {
     throw new Error('Le champ "ssl" doit être un booléen');
+  }
+  if(nginx.socket && !Array.isArray(nginx.socket)){
+    throw new Error('Le champ "nginx.socket" doit être une liste.');
   }
   // Valider le chemin de Nginx
   if (!nginx.path.startsWith('/')) {
