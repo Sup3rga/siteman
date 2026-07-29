@@ -292,6 +292,8 @@ export const Process = {
             content += this.addLine("proxy_set_header X-Real-IP $remote_addr;", 1,2);
             content += this.addLine("proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;", 1,2);
             content += this.addLine("proxy_set_header X-Forwarded-Proto $scheme;", 1,2);
+            content += this.addLine("proxy_set_header Upgrade $http_upgrade;", 1,2);
+            content += this.addLine("proxy_set_header Connection \"upgrade\";", 1,2);
             content += this.addLine("}", 1);
             return content;
         },
